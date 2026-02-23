@@ -1,5 +1,7 @@
 import os
 import urllib.parse
+import threading
+from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, CommandHandler, filters
 # Notice the new get_pexels_image import at the end of this line!
@@ -7,6 +9,19 @@ from brain import write_news_article, update_news_json, generate_html_page, dele
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# --- THE DUMMY WEB SERVER ---
+# This exists purely to trick Koyeb's health check on Port 8080
+app_web = Flask(__name__)
+
+@app_web.route('/')
+def health_check():
+    return "🤖 AI Writer Bot is Alive and Running!"
+
+def run_web():
+    # Running on 0.0.0.0 allows Koyeb to ping it from outside
+    app_web.run(host="0.0.0.0", port=8080)
+# ----------------------------
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Intercepts the .txt file and Auto-Publishes up to 20 stories."""
@@ -64,7 +79,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if os.path.exists(file_path):
         os.remove(file_path)
         
-    await update.message.reply_text(f"✅ Auto-Pilot Complete! Published {success_count} new articles. Refresh grandlinenews.com!")
+    await update.message.reply_text(f"✅ Auto-Pilot Complete! Published {success_count} new articles.")
 
 async def delete_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Emergency kill-switch to delete a post."""
@@ -84,6 +99,11 @@ async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🏓 PONG! Publisher Bot is alive and well.")
 
 if __name__ == '__main__':
+    # 1. Start the Dummy Web Server in the background
+    print("🌐 Starting Dummy Web Server for Koyeb Health Check...")
+    threading.Thread(target=run_web, daemon=True).start()
+
+    # 2. Start the Telegram Bot setup
     token = os.getenv("PUBLISHER_BOT_TOKEN")
     
     # We are building the app with massive timeouts and a connection pool
