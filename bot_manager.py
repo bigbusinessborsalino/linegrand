@@ -4,8 +4,8 @@ import threading
 from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, CommandHandler, filters
-# Notice the new get_pexels_image import at the end of this line!
-from brain import write_news_article, update_news_json, generate_html_page, delete_news_article, get_pexels_image
+# Notice get_pexels_image is GONE from this line!
+from brain import write_news_article, update_news_json, generate_html_page, delete_news_article
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,7 +51,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
     # Limit to top 4 topics for testing (we will change this to 20 later!)
     topics = topics[:4]
-    await update.message.reply_text(f"🤖 Extracted {len(topics)} topics. Writing articles and fetching photos now...")
+    await update.message.reply_text(f"🤖 Extracted {len(topics)} topics. Writing text-only articles now...")
 
     success_count = 0
     for topic in topics:
@@ -63,15 +63,12 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not content:
                 continue
                 
-            # 2. Get the REAL copyright-free photograph from Pexels
-            img_url = get_pexels_image(topic)
-            
-            # 3. Publish to React UI and HTML
-            update_news_json(topic, content[:150] + "...", "Trending", img_url)
-            generate_html_page(topic, img_url, content)
+            # 2. Publish to React UI and HTML (Passing empty strings instead of images)
+            update_news_json(topic, content[:150] + "...", "Trending", "")
+            generate_html_page(topic, "", content)
             
             success_count += 1
-            print(f"Published: {topic}")
+            print(f"Published Text Only: {topic}")
         except Exception as e:
             print(f"Failed on {topic}: {e}")
             
@@ -79,7 +76,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if os.path.exists(file_path):
         os.remove(file_path)
         
-    await update.message.reply_text(f"✅ Auto-Pilot Complete! Published {success_count} new articles.")
+    await update.message.reply_text(f"✅ Auto-Pilot Complete! Published {success_count} text articles.")
 
 async def delete_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Emergency kill-switch to delete a post."""
