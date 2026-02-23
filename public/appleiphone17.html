@@ -1,0 +1,66 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>apple iphone 17 | Grand Line News</title>
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50 text-gray-900 font-sans">
+        <nav class="bg-white shadow-sm py-4 px-6 mb-8">
+            <div class="max-w-5xl mx-auto flex items-center">
+                <a href="/" class="flex items-center gap-2 text-2xl font-black tracking-tight text-gray-900">
+                    <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
+                    Grand Line News
+                </a>
+            </div>
+        </nav>
+        <main class="max-w-5xl mx-auto px-4 pb-12">
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12">
+                <img src="https://image.pollinations.ai/prompt/Professional%20news%20photography%20about%20apple%20iphone%2017%2C%20highly%20detailed%2C%208k%20resolution?width=900&height=600&nologo=true" alt="apple iphone 17" class="w-full h-[400px] object-cover" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80'" />
+                <div class="p-8 md:p-12">
+                    <h1 class="text-3xl md:text-5xl font-black leading-tight mb-8">apple iphone 17</h1>
+                    <div class="text-lg md:text-xl">
+                        <p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>**Apple Unveils iPhone 17: A Leap into the Future of Smart Technology**</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Apple has once again redefined innovation with the launch of the highly anticipated iPhone 17, setting a new benchmark for smartphones in 2024. Packed with groundbreaking features, the device promises to revolutionize how users interact with technology, blending cutting-edge hardware with intuitive software enhancements.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>At the heart of the iPhone 17 is the A17 Bionic chip, Apple’s most powerful processor to date. Built on a 3nm architecture, it delivers unprecedented performance, ensuring seamless multitasking, lightning-fast app launches, and console-level gaming experiences. Paired with an advanced neural engine, the device excels in AI-driven tasks, from real-time language translation to enhanced augmented reality (AR) capabilities.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>The display is a showstopper, featuring a 6.9-inch OLED screen with ProMotion technology, now supporting a 144Hz refresh rate for buttery-smooth scrolling and gaming. The introduction of “TrueTone Max” ensures vibrant colors and perfect brightness adjustments, even in direct sunlight.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Photography enthusiasts will marvel at the iPhone 17’s camera system. The triple-lens setup includes a 50MP primary sensor, a 12MP ultra-wide lens, and a 12MP telephoto lens with 5x optical zoom. Apple’s new “Photonic Fusion” engine elevates low-light photography, while 8K video recording at 60fps sets a new industry standard.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Battery life has been a focal point, with the iPhone 17 boasting a 4,500mAh battery and 50W fast charging, delivering a full charge in just 45 minutes. Wireless charging has also been optimized, now supporting 15W MagSafe charging.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Sustainability takes center stage, as the iPhone 17 is crafted with 100% recycled materials, aligning with Apple’s goal to become carbon neutral by 2030.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>With iOS 18 introducing features like on-device AI and enhanced privacy controls, the iPhone 17 is more than a smartphone—it’s a glimpse into the future. Starting at $999, it’s available for pre-order now, with shipments beginning October 13. Apple has once again proven why it remains at the forefront of technological excellence.</p>
+                    </div>
+                </div>
+            </article>
+            <div>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-6 bg-red-700 rounded-full"></div>
+                    <h2 class="text-2xl font-bold">Related Stories</h2>
+                </div>
+                <div id="related-news" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+        </main>
+        <footer class="bg-white border-t border-gray-200 text-center py-8 text-gray-500 text-sm">
+            &copy; 2026 Grand Line News | Automated by Reigen
+        </footer>
+        <script>
+            fetch('/news.json')
+                .then(res => res.json())
+                .then(articles => {
+                    const others = articles.filter(a => a.title !== "apple iphone 17");
+                    const shuffled = others.sort(() => 0.5 - Math.random());
+                    const selected = shuffled.slice(0, 3);
+                    const container = document.getElementById('related-news');
+                    selected.forEach(article => {
+                        const safeName = article.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                        const link = '/' + safeName + '.html';
+                        const img = article.imageUrl || article.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80';
+                        let cardHTML = '<a href="' + link + '" class="group flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">';
+                        cardHTML += '<img src="' + img + '" class="w-full h-48 object-cover" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80'" />';
+                        cardHTML += '<div class="p-5 flex-1 flex flex-col">';
+                        cardHTML += '<span class="text-xs font-bold text-red-700 uppercase mb-2">' + (article.category || 'Trending') + '</span>';
+                        cardHTML += '<h3 class="font-bold text-gray-900 leading-snug line-clamp-3 group-hover:text-red-700 transition-colors">' + article.title + '</h3>';
+                        cardHTML += '</div></a>';
+                        container.innerHTML += cardHTML;
+                    });
+                })
+                .catch(err => console.error(err));
+        </script>
+    </body>
+    </html>
+    

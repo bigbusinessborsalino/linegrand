@@ -1,0 +1,66 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>susan rice | Grand Line News</title>
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50 text-gray-900 font-sans">
+        <nav class="bg-white shadow-sm py-4 px-6 mb-8">
+            <div class="max-w-5xl mx-auto flex items-center">
+                <a href="/" class="flex items-center gap-2 text-2xl font-black tracking-tight text-gray-900">
+                    <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
+                    Grand Line News
+                </a>
+            </div>
+        </nav>
+        <main class="max-w-5xl mx-auto px-4 pb-12">
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12">
+                <img src="https://image.pollinations.ai/prompt/Professional%20news%20photography%20about%20susan%20rice%2C%20highly%20detailed%2C%208k%20resolution?width=900&height=600&nologo=true" alt="susan rice" class="w-full h-[400px] object-cover" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80'" />
+                <div class="p-8 md:p-12">
+                    <h1 class="text-3xl md:text-5xl font-black leading-tight mb-8">susan rice</h1>
+                    <div class="text-lg md:text-xl">
+                        <p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>**Susan Rice Appointed to Lead White House Domestic Policy Council, Marking a Historic Shift in Leadership**</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>In a move that has sent ripples through Washington, President Joe Biden has appointed Susan Rice, the former National Security Advisor and U.N. Ambassador, to lead the White House Domestic Policy Council. This groundbreaking decision marks the first time a former national security official has taken the helm of a domestic policy role, signaling a bold new approach to addressing the nation’s most pressing challenges.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Rice, a seasoned diplomat and policy strategist, brings a wealth of experience to the position, having served in key roles under both the Obama and Biden administrations. Her appointment underscores the Biden administration’s commitment to tackling domestic issues—such as economic inequality, healthcare, and climate change—with the same rigor and urgency traditionally reserved for foreign policy.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>“Susan Rice is a proven leader with a track record of solving complex problems,” President Biden said in a statement. “Her expertise in strategic planning and cross-agency collaboration will be invaluable as we work to build a stronger, more equitable America.”</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>The move has been widely praised by policymakers and analysts, who see Rice’s appointment as a strategic alignment of skills and priorities. Known for her sharp intellect and decisive leadership, Rice is expected to bring a fresh perspective to domestic policy, leveraging her international experience to address systemic issues with innovative solutions.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Critics, however, have questioned whether her background in foreign affairs qualifies her for such a domestically focused role. Rice has addressed these concerns head-on, emphasizing her lifelong commitment to public service and her ability to adapt to new challenges. “The issues we face at home are deeply interconnected with global trends,” she said in a recent interview. “My goal is to ensure that our domestic policies are forward-thinking, inclusive, and resilient.”</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>As Rice steps into this new role, all eyes are on her to deliver impactful policies that bridge divides and drive progress. Her appointment is not just a career milestone but a testament to the evolving nature of leadership in an increasingly interconnected world. With Susan Rice at the helm, the Domestic Policy Council is poised to redefine what’s possible in American governance.</p>
+                    </div>
+                </div>
+            </article>
+            <div>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-6 bg-red-700 rounded-full"></div>
+                    <h2 class="text-2xl font-bold">Related Stories</h2>
+                </div>
+                <div id="related-news" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+        </main>
+        <footer class="bg-white border-t border-gray-200 text-center py-8 text-gray-500 text-sm">
+            &copy; 2026 Grand Line News | Automated by Reigen
+        </footer>
+        <script>
+            fetch('/news.json')
+                .then(res => res.json())
+                .then(articles => {
+                    const others = articles.filter(a => a.title !== "susan rice");
+                    const shuffled = others.sort(() => 0.5 - Math.random());
+                    const selected = shuffled.slice(0, 3);
+                    const container = document.getElementById('related-news');
+                    selected.forEach(article => {
+                        const safeName = article.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                        const link = '/' + safeName + '.html';
+                        const img = article.imageUrl || article.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80';
+                        let cardHTML = '<a href="' + link + '" class="group flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">';
+                        cardHTML += '<img src="' + img + '" class="w-full h-48 object-cover" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80'" />';
+                        cardHTML += '<div class="p-5 flex-1 flex flex-col">';
+                        cardHTML += '<span class="text-xs font-bold text-red-700 uppercase mb-2">' + (article.category || 'Trending') + '</span>';
+                        cardHTML += '<h3 class="font-bold text-gray-900 leading-snug line-clamp-3 group-hover:text-red-700 transition-colors">' + article.title + '</h3>';
+                        cardHTML += '</div></a>';
+                        container.innerHTML += cardHTML;
+                    });
+                })
+                .catch(err => console.error(err));
+        </script>
+    </body>
+    </html>
+    

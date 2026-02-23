@@ -1,0 +1,66 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>lafc vs inter miami | Grand Line News</title>
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50 text-gray-900 font-sans">
+        <nav class="bg-white shadow-sm py-4 px-6 mb-8">
+            <div class="max-w-5xl mx-auto flex items-center">
+                <a href="/" class="flex items-center gap-2 text-2xl font-black tracking-tight text-gray-900">
+                    <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
+                    Grand Line News
+                </a>
+            </div>
+        </nav>
+        <main class="max-w-5xl mx-auto px-4 pb-12">
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12">
+                <img src="https://images.pexels.com/photos/12341819/pexels-photo-12341819.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200" alt="lafc vs inter miami" class="w-full h-[400px] object-cover" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80'" />
+                <div class="p-8 md:p-12">
+                    <h1 class="text-3xl md:text-5xl font-black leading-tight mb-8">lafc vs inter miami</h1>
+                    <div class="text-lg md:text-xl">
+                        <p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Stellar Showdown: LAFC Prepares for Messi's Inter Miami in Blockbuster Clash</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Los Angeles, CA – The football world holds its breath as two titans of Major League Soccer are set to collide this Sunday, with reigning MLS Cup champions LAFC hosting a revitalized Inter Miami CF. This highly anticipated fixture isn’t just a regular season match; it’s a clash of narratives, star power, and contrasting styles, promising an unforgettable spectacle for fans both at BMO Stadium and globally. The arrival of Lionel Messi has transformed Inter Miami, turning every match into a must-watch event, and their trip to the formidable fortress of LAFC is arguably their biggest test yet.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>LAFC, under the guidance of Steve Cherundolo, enters this game with a reputation for dominance and an unwavering commitment to attacking football. Led by the dynamic Denis Bouanga and the ever-influential Carlos Vela, the Black & Gold boast a balanced squad, formidable at home, and accustomed to high-pressure encounters. Their disciplined defense and blistering counter-attacks will be crucial in containing Miami's newfound momentum. This is a chance for LAFC to reassert their champion status against the league's most talked-about opposition.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Inter Miami, fresh off their Leagues Cup triumph and a strong showing in recent MLS fixtures, arrives in Los Angeles radiating confidence. The presence of Lionel Messi, orchestrating play with unparalleled vision and lethal finishing, alongside former Barcelona teammates Sergio Busquets and Jordi Alba, has ignited a winning spirit. Their journey from the bottom of the Eastern Conference to a team capable of challenging any opponent has been meteoric, and proving themselves against the Western Conference champions would be another monumental step in their remarkable turnaround.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>Expect a pulsating ninety minutes where tactical battles will unfold across every blade of grass. Will LAFC’s organized press and home advantage stifle Messi’s magic? Or will Miami’s star-studded lineup unlock the champions’ defense? This Sunday isn't just a game; it's an event, a testament to the growing global appeal of MLS, and a fixture destined to be etched into the annals of American football history. Prepare for fireworks.</p>
+                    </div>
+                </div>
+            </article>
+            <div>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-6 bg-red-700 rounded-full"></div>
+                    <h2 class="text-2xl font-bold">Related Stories</h2>
+                </div>
+                <div id="related-news" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+        </main>
+        <footer class="bg-white border-t border-gray-200 text-center py-8 text-gray-500 text-sm">
+            &copy; 2026 Grand Line News | Automated by Reigen
+        </footer>
+        <script>
+            fetch('/news.json')
+                .then(res => res.json())
+                .then(articles => {
+                    const others = articles.filter(a => a.title !== "lafc vs inter miami");
+                    const shuffled = others.sort(() => 0.5 - Math.random());
+                    const selected = shuffled.slice(0, 3);
+                    const container = document.getElementById('related-news');
+                    selected.forEach(article => {
+                        const safeName = article.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                        const link = '/' + safeName + '.html';
+                        const img = article.imageUrl || article.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80';
+                        let cardHTML = '<a href="' + link + '" class="group flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">';
+                        cardHTML += '<img src="' + img + '" class="w-full h-48 object-cover" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80'" />';
+                        cardHTML += '<div class="p-5 flex-1 flex flex-col">';
+                        cardHTML += '<span class="text-xs font-bold text-red-700 uppercase mb-2">' + (article.category || 'Trending') + '</span>';
+                        cardHTML += '<h3 class="font-bold text-gray-900 leading-snug line-clamp-3 group-hover:text-red-700 transition-colors">' + article.title + '</h3>';
+                        cardHTML += '</div></a>';
+                        container.innerHTML += cardHTML;
+                    });
+                })
+                .catch(err => console.error(err));
+        </script>
+    </body>
+    </html>
+    

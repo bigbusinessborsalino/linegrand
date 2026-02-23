@@ -1,0 +1,66 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>sehri ki niyat | Grand Line News</title>
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50 text-gray-900 font-sans">
+        <nav class="bg-white shadow-sm py-4 px-6 mb-8">
+            <div class="max-w-5xl mx-auto flex items-center">
+                <a href="/" class="flex items-center gap-2 text-2xl font-black tracking-tight text-gray-900">
+                    <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
+                    Grand Line News
+                </a>
+            </div>
+        </nav>
+        <main class="max-w-5xl mx-auto px-4 pb-12">
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12">
+                <img src="https://images.pexels.com/photos/12532343/pexels-photo-12532343.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200" alt="sehri ki niyat" class="w-full h-[400px] object-cover" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80'" />
+                <div class="p-8 md:p-12">
+                    <h1 class="text-3xl md:text-5xl font-black leading-tight mb-8">sehri ki niyat</h1>
+                    <div class="text-lg md:text-xl">
+                        <p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>**Sehri Ki Niyat: A Spiritual Awakening for Millions During Ramadan**</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>As the holy month of Ramadan unfolds, Muslims around the world are embracing the sacred practice of *Sehri Ki Niyat* (the intention for pre-dawn meal), a ritual that marks the beginning of their daily fast. This deeply spiritual act is more than just a physical preparation; it is a moment of profound connection with faith, discipline, and community. With the first light of dawn, millions recite their intentions, setting the tone for a day of reflection, self-control, and devotion.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>The significance of *Sehri Ki Niyat* lies in its ability to align the heart and mind with the purpose of Ramadan. It is a reminder that fasting is not merely abstaining from food and drink but a holistic journey of purification and growth. Scholars emphasize that the intention behind the fast is as crucial as the act itself, making *Sehri Ki Niyat* a cornerstone of the Ramadan experience. This practice encourages believers to approach the day with mindfulness, gratitude, and a renewed commitment to their spiritual goals.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>In a world often dominated by haste and distraction, *Sehri Ki Niyat* offers a rare pause—a quiet moment of introspection before the day begins. Families gather in the early hours, sharing meals and prayers, strengthening bonds that resonate beyond the month. The ritual has also gained prominence in digital spaces, with social media platforms buzzing with reminders, dua (supplications), and motivational messages, uniting the global Muslim community in a shared purpose.</p><p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>As Ramadan progresses, the practice of *Sehri Ki Niyat* continues to inspire, reminding believers of the transformative power of intention. It is a testament to the enduring beauty of faith, where a simple act becomes a gateway to deeper spiritual fulfillment. In the stillness of dawn, hearts are awakened, and the essence of Ramadan shines brighter than ever.</p>
+                    </div>
+                </div>
+            </article>
+            <div>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1.5 h-6 bg-red-700 rounded-full"></div>
+                    <h2 class="text-2xl font-bold">Related Stories</h2>
+                </div>
+                <div id="related-news" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </div>
+        </main>
+        <footer class="bg-white border-t border-gray-200 text-center py-8 text-gray-500 text-sm">
+            &copy; 2026 Grand Line News | Automated by Reigen
+        </footer>
+        <script>
+            fetch('/news.json')
+                .then(res => res.json())
+                .then(articles => {
+                    const others = articles.filter(a => a.title !== "sehri ki niyat");
+                    const shuffled = others.sort(() => 0.5 - Math.random());
+                    const selected = shuffled.slice(0, 3);
+                    const container = document.getElementById('related-news');
+                    selected.forEach(article => {
+                        const safeName = article.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                        const link = '/' + safeName + '.html';
+                        const img = article.imageUrl || article.image || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80';
+                        let cardHTML = '<a href="' + link + '" class="group flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md hover:-translate-y-1">';
+                        cardHTML += '<img src="' + img + '" class="w-full h-48 object-cover" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=900&q=80'" />';
+                        cardHTML += '<div class="p-5 flex-1 flex flex-col">';
+                        cardHTML += '<span class="text-xs font-bold text-red-700 uppercase mb-2">' + (article.category || 'Trending') + '</span>';
+                        cardHTML += '<h3 class="font-bold text-gray-900 leading-snug line-clamp-3 group-hover:text-red-700 transition-colors">' + article.title + '</h3>';
+                        cardHTML += '</div></a>';
+                        container.innerHTML += cardHTML;
+                    });
+                })
+                .catch(err => console.error(err));
+        </script>
+    </body>
+    </html>
+    
