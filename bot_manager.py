@@ -1,7 +1,7 @@
 import os
 import urllib.parse
 import threading
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, CommandHandler, filters
 from pymongo import MongoClient
@@ -23,41 +23,40 @@ app_web = Flask(__name__)
 def health_check():
     return "🤖 AI Writer Bot is Alive and Running!"
 
-# 1. This endpoint pulls directly from MongoDB and sends it to your Render website!
 @app_web.route('/api/news')
 def get_live_news():
     if articles_collection is not None:
-        # Get all articles, sorted by newest first. Hide the internal Mongo _id.
         articles = list(articles_collection.find({}, {"_id": 0}).sort("timestamp", -1))
         response = jsonify(articles)
     else:
         response = jsonify([])
-        
-    # Security bypass: Allows your Render domain to read this data safely
     response.headers.add("Access-Control-Allow-Origin", "*")
     return response
 
+# 🚀 NEW: THE SECRET DOOR FOR YOUR BROADCASTER!
+@app_web.route('/api/trigger-writer', methods=['POST'])
+def trigger_writer():
+    data = request.json
+    if not data or 'raw_text' not in data:
+        return jsonify({"error": "No text provided"}), 400
+    
+    raw_text = data['raw_text']
+    
+    # We run this in the background so Render doesn't have to wait 30 minutes for Koyeb to finish writing
+    threading.Thread(target=process_raw_trends, args=(raw_text,), daemon=True).start()
+    
+    return jsonify({"message": "✅ Trends received! Mega-Pool is starting..."}), 200
+
 def run_web():
-    # Running on 0.0.0.0 allows Koyeb to ping it from outside
     app_web.run(host="0.0.0.0", port=8080)
 # ----------------------------
 
-async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Intercepts the .txt file and Auto-Publishes the Highest and Lowest story per region."""
-    document = update.message.document
-    
-    if not document.file_name.endswith('.txt'):
-        return
 
-    await update.message.reply_text("📥 Received Trends File! Starting Full Auto-Pilot...")
+# --- CORE TOPIC PARSING LOGIC ---
+def process_raw_trends(raw_text):
+    print("📥 Processing Trends! Starting Full Auto-Pilot...")
+    lines = raw_text.split('\n')
     
-    file = await context.bot.get_file(document.file_id)
-    file_path = "temp_trends.txt"
-    await file.download_to_drive(file_path)
-    
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        
     final_topics = []
     current_country_topics = []
     
@@ -88,34 +87,49 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if t not in topics:
             topics.append(t)
                 
-    await update.message.reply_text(f"🤖 Extracted {len(topics)} topics. Passing to the Mega-Pool now...")
+    print(f"🤖 Extracted {len(topics)} topics. Passing to the Mega-Pool now...")
 
     success_count = 0
     for topic in topics:
         try:
             source_url = f"https://news.google.com/search?q={urllib.parse.quote(topic)}"
-            # This function now safely beams the article straight to MongoDB
             content = write_news_article(source_url, topic)
-            
             if not content:
                 continue
-            
             success_count += 1
             print(f"Published to MongoDB: {topic}")
         except Exception as e:
             print(f"Failed on {topic}: {e}")
             
+    print(f"✅ Auto-Pilot Complete! Saved {success_count} articles to the cloud database.")
+
+
+# --- TELEGRAM COMMANDS ---
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Still allows YOU to manually upload files via Telegram for testing."""
+    document = update.message.document
+    if not document.file_name.endswith('.txt'):
+        return
+
+    await update.message.reply_text("📥 Received Trends File manually! Starting...")
+    
+    file = await context.bot.get_file(document.file_id)
+    file_path = "temp_trends.txt"
+    await file.download_to_drive(file_path)
+    
+    with open(file_path, "r", encoding="utf-8") as f:
+        raw_text = f.read()
+        
     if os.path.exists(file_path):
         os.remove(file_path)
-        
-    await update.message.reply_text(f"✅ Auto-Pilot Complete! Saved {success_count} articles to the cloud database.")
+
+    threading.Thread(target=process_raw_trends, args=(raw_text,), daemon=True).start()
+    await update.message.reply_text("✅ Trends sent to background worker. Check Koyeb logs!")
 
 async def delete_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Emergency kill-switch to delete a post from MongoDB."""
     try:
         post_number = context.args[0]
         deleted_title = delete_news_article(post_number)
-        
         if deleted_title:
             await update.message.reply_text(f"🗑️ Successfully deleted: {deleted_title}")
         else:
@@ -124,7 +138,6 @@ async def delete_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Usage: /delete <number>\nExample: /delete 1 (deletes the newest post)")
 
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Simple ping-pong to test if the bot is alive."""
     await update.message.reply_text("🏓 PONG! Publisher Bot is alive and well.")
 
 if __name__ == '__main__':
@@ -132,23 +145,13 @@ if __name__ == '__main__':
     threading.Thread(target=run_web, daemon=True).start()
 
     token = os.getenv("PUBLISHER_BOT_TOKEN")
-    
-    app = (
-        ApplicationBuilder()
-        .token(token)
-        .connect_timeout(60) 
-        .read_timeout(60)
-        .write_timeout(60)
-        .pool_timeout(60)
-        .build()
-    )
+    app = ApplicationBuilder().token(token).connect_timeout(60).read_timeout(60).write_timeout(60).pool_timeout(60).build()
     
     app.add_handler(CommandHandler("ping", ping))
     app.add_handler(CommandHandler("delete", delete_post))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     
     print("🚀 Attempting to connect to Telegram...")
-    
     try:
         app.run_polling(drop_pending_updates=True, close_loop=False)
     except Exception as e:
