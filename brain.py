@@ -13,10 +13,9 @@ load_dotenv()
 # --- 1. MONGODB SETUP ---
 # Connects to the exact same database your Broadcaster uses!
 MONGO_URI = os.getenv("MONGO_URI")
-db_client = MongoClient(MONGO_URI) if MONGO_URI else None
-db = db_client.grandline_news if db_client else None
-articles_collection = db.articles if db else None
-
+db_client = MongoClient(MONGO_URI) if MONGO_URI is not None else None
+db = db_client.grandline_news if db_client is not None else None
+articles_collection = db.articles if db is not None else None
 
 # --- 2. THE PERFECT 1-TO-10 LOAD BALANCER ---
 available_clients = []
@@ -52,7 +51,6 @@ if not available_clients:
 engine_cycle = itertools.cycle(available_clients)
 print(f"🚀 MEGA-POOL INITIALIZED: {len(available_clients)} AI Engines loaded in perfect sequence!")
 
-
 # --- 3. CORE BOT LOGIC ---
 
 def write_news_article(source_url, topic):
@@ -86,35 +84,31 @@ def write_news_article(source_url, topic):
 
 def update_news_json(topic, excerpt, category, img_url):
     """Intercepts the JSON save and beams the summary to MongoDB!"""
-    if not articles_collection is None:
+    if articles_collection is not None:
         safe_id = "".join(x for x in topic if x.isalnum())[:20]
         new_article = {
             "title": topic,
             "excerpt": excerpt,
             "category": category,
             "readTime": "3 min read",
-            # We use a proper timestamp so we can easily sort newest to oldest later
             "timestamp": time.time(), 
             "date": datetime.now().strftime("%b %d, %Y"),
             "imageUrl": img_url
         }
-        # Upsert creates a new database row if it doesn't exist
         articles_collection.update_one({"_id": safe_id}, {"$set": new_article}, upsert=True)
     else:
         print("⚠️ MONGO_URI missing! Cannot save to database.")
 
 def generate_html_page(title, img_url, content):
     """Intercepts the HTML save and attaches the full article text to MongoDB!"""
-    if not articles_collection is None:
+    if articles_collection is not None:
         safe_id = "".join(x for x in title if x.isalnum())[:20]
-        # Instead of making an HTML file, we just add the full text to the exact same database row!
         articles_collection.update_one({"_id": safe_id}, {"$set": {"full_content": content}}, upsert=True)
 
 def delete_news_article(post_number):
     """Emergency kill-switch to delete a post from MongoDB."""
-    if not articles_collection is None:
+    if articles_collection is not None:
         try:
-            # Grabs the most recent articles and deletes the one you specify
             recent_articles = list(articles_collection.find().sort("timestamp", -1).limit(int(post_number)))
             if len(recent_articles) >= int(post_number):
                 target_article = recent_articles[-1]
