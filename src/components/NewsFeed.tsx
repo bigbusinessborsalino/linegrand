@@ -7,26 +7,25 @@ const NewsFeed = () => {
   useEffect(() => {
     const fetchLiveNews = async () => {
       try {
-        // Connected to your live Koyeb API!
+        // 🚀 Connected directly to your live database API!
         const response = await fetch('https://smart-corine-gojosggh-59868182.koyeb.app/api/news');
-        
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        
         const liveData = await response.json();
-        setArticles(liveData);
-      } catch (error) {
-        console.error('Error fetching live news from Koyeb:', error);
+        
+        // Formats the database data so your UI can read it
+        const formattedData = liveData.map((a: any) => ({
+            ...a,
+            id: a.id || a.title.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20)
+        }));
+        
+        setArticles(formattedData);
+      } catch (err) {
+        console.error("Waiting for bot data...", err);
       }
     };
 
-    // Fetch the news immediately when the page loads
     fetchLiveNews();
-    
-    // Auto-refresh the news every 5 minutes without reloading the page!
-    const intervalId = setInterval(fetchLiveNews, 300000); 
-    return () => clearInterval(intervalId);
+    const interval = setInterval(fetchLiveNews, 300000); // Auto-refreshes every 5 mins
+    return () => clearInterval(interval);
   }, []);
 
   if (articles.length === 0) {
@@ -49,7 +48,7 @@ const NewsFeed = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
         <div className="lg:col-span-2">
-          <NewsCard article={featured} variant="featured" />
+          {featured && <NewsCard article={featured} variant="featured" />}
         </div>
         <div className="flex flex-col justify-between">
           <div className="bg-card border border-border rounded-xl p-5 h-full" style={{ boxShadow: "var(--card-shadow)" }}>
