@@ -16,7 +16,7 @@ db_client = MongoClient(MONGO_URI) if MONGO_URI is not None else None
 db = db_client.grandline_news if db_client is not None else None
 articles_collection = db.articles if db is not None else None
 
-# --- THE LIVE NEWS API SERVER (THE BRIDGE) ---
+# --- THE LIVE NEWS API SERVER (THE SECRET DOOR) ---
 app_web = Flask(__name__)
 
 @app_web.route('/')
@@ -33,7 +33,6 @@ def get_live_news():
     response.headers.add("Access-Control-Allow-Origin", "*")
     return response
 
-# 🚀 NEW: THE SECRET DOOR FOR YOUR BROADCASTER!
 @app_web.route('/api/trigger-writer', methods=['POST'])
 def trigger_writer():
     data = request.json
@@ -41,20 +40,15 @@ def trigger_writer():
         return jsonify({"error": "No text provided"}), 400
     
     raw_text = data['raw_text']
-    
-    # We run this in the background so Render doesn't have to wait 30 minutes for Koyeb to finish writing
     threading.Thread(target=process_raw_trends, args=(raw_text,), daemon=True).start()
-    
     return jsonify({"message": "✅ Trends received! Mega-Pool is starting..."}), 200
 
 def run_web():
     app_web.run(host="0.0.0.0", port=8080)
-# ----------------------------
 
-
-# --- CORE TOPIC PARSING LOGIC ---
+# --- API BACKGROUND WORKER (For Render only) ---
 def process_raw_trends(raw_text):
-    print("📥 Processing Trends! Starting Full Auto-Pilot...")
+    print("📥 API: Processing Trends! Starting Full Auto-Pilot...")
     lines = raw_text.split('\n')
     
     final_topics = []
@@ -86,45 +80,79 @@ def process_raw_trends(raw_text):
     for t in final_topics:
         if t not in topics:
             topics.append(t)
-                
-    print(f"🤖 Extracted {len(topics)} topics. Passing to the Mega-Pool now...")
 
     success_count = 0
     for topic in topics:
         try:
             source_url = f"https://news.google.com/search?q={urllib.parse.quote(topic)}"
             content = write_news_article(source_url, topic)
-            if not content:
-                continue
-            success_count += 1
-            print(f"Published to MongoDB: {topic}")
+            if content:
+                success_count += 1
         except Exception as e:
             print(f"Failed on {topic}: {e}")
-            
-    print(f"✅ Auto-Pilot Complete! Saved {success_count} articles to the cloud database.")
 
 
-# --- TELEGRAM COMMANDS ---
+# --- TELEGRAM BOT LOGIC (RESTORED TO TALK BACK TO YOU) ---
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Still allows YOU to manually upload files via Telegram for testing."""
     document = update.message.document
     if not document.file_name.endswith('.txt'):
         return
 
-    await update.message.reply_text("📥 Received Trends File manually! Starting...")
+    await update.message.reply_text("📥 Received Trends File! Starting Full Auto-Pilot...")
     
     file = await context.bot.get_file(document.file_id)
     file_path = "temp_trends.txt"
     await file.download_to_drive(file_path)
     
     with open(file_path, "r", encoding="utf-8") as f:
-        raw_text = f.read()
+        lines = f.readlines()
         
+    final_topics = []
+    current_country_topics = []
+    
+    for line in lines:
+        if line.startswith("--- NEW TRENDS IN"):
+            if current_country_topics:
+                if len(current_country_topics) >= 2:
+                    final_topics.append(current_country_topics[0])  
+                    final_topics.append(current_country_topics[-1]) 
+                else:
+                    final_topics.append(current_country_topics[0])
+            current_country_topics = [] 
+            
+        elif line.startswith("Topic:"):
+            topic = line.split("Topic:")[1].split("(")[0].strip()
+            if topic not in current_country_topics:
+                current_country_topics.append(topic)
+                
+    if current_country_topics:
+        if len(current_country_topics) >= 2:
+            final_topics.append(current_country_topics[0])
+            final_topics.append(current_country_topics[-1])
+        else:
+            final_topics.append(current_country_topics[0])
+
+    topics = []
+    for t in final_topics:
+        if t not in topics:
+            topics.append(t)
+                
+    await update.message.reply_text(f"🤖 Extracted {len(topics)} topics. Passing to the Mega-Pool now...")
+
+    success_count = 0
+    for topic in topics:
+        try:
+            source_url = f"https://news.google.com/search?q={urllib.parse.quote(topic)}"
+            content = write_news_article(source_url, topic)
+            if content:
+                success_count += 1
+        except Exception as e:
+            print(f"Failed on {topic}: {e}")
+            
     if os.path.exists(file_path):
         os.remove(file_path)
-
-    threading.Thread(target=process_raw_trends, args=(raw_text,), daemon=True).start()
-    await update.message.reply_text("✅ Trends sent to background worker. Check Koyeb logs!")
+        
+    await update.message.reply_text(f"✅ Auto-Pilot Complete! Saved {success_count} articles to the cloud database.")
 
 async def delete_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
