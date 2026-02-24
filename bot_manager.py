@@ -1,151 +1,181 @@
 import os
-import urllib.parse
-import threading
-from flask import Flask
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, CommandHandler, filters
-from brain import write_news_article, update_news_json, generate_html_page, delete_news_article
+import requests
+import itertools
+import json
+import time
+from datetime import datetime
+from google import genai
+from groq import Groq
+import cohere
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- THE DUMMY WEB SERVER ---
-# This exists purely to trick Koyeb's health check on Port 8080
-app_web = Flask(__name__)
+# --- 1. THE PERFECT 1-TO-10 LOAD BALANCER ---
+available_clients = []
 
-@app_web.route('/')
-def health_check():
-    return "🤖 AI Writer Bot is Alive and Running!"
-
-def run_web():
-    # Running on 0.0.0.0 allows Koyeb to ping it from outside
-    app_web.run(host="0.0.0.0", port=8080)
-# ----------------------------
-
-async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Intercepts the .txt file and Auto-Publishes the Highest and Lowest story per region."""
-    document = update.message.document
-    
-    if not document.file_name.endswith('.txt'):
-        return
-
-    await update.message.reply_text("📥 Received Trends File! Starting Full Auto-Pilot...")
-    
-    # Download the file to read it
-    file = await context.bot.get_file(document.file_id)
-    file_path = "temp_trends.txt"
-    await file.download_to_drive(file_path)
-    
-    # Read the topics
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        
-    final_topics = []
-    current_country_topics = []
-    
-    for line in lines:
-        if line.startswith("--- NEW TRENDS IN"):
-            # If we just finished a country, extract its Highest (First) and Lowest (Last)
-            if current_country_topics:
-                if len(current_country_topics) >= 2:
-                    final_topics.append(current_country_topics[0])  # Highest
-                    final_topics.append(current_country_topics[-1]) # Lowest
-                else:
-                    final_topics.append(current_country_topics[0])
-            
-            # Reset the list for the new country we just hit
-            current_country_topics = [] 
-            
-        elif line.startswith("Topic:"):
-            topic = line.split("Topic:")[1].split("(")[0].strip()
-            if topic not in current_country_topics:
-                current_country_topics.append(topic)
-                
-    # Don't forget to process the very last country in the text file!
-    if current_country_topics:
-        if len(current_country_topics) >= 2:
-            final_topics.append(current_country_topics[0])
-            final_topics.append(current_country_topics[-1])
-        else:
-            final_topics.append(current_country_topics[0])
-
-    # Remove any duplicate topics across different countries to save API calls
-    topics = []
-    for t in final_topics:
-        if t not in topics:
-            topics.append(t)
-                
-    await update.message.reply_text(f"🤖 Extracted {len(topics)} topics (Highest & Lowest from each region). Passing to the Mega-Pool now...")
-
-    success_count = 0
-    for topic in topics:
+# Loop exactly 1 through 10 to force the perfect Gemini -> Groq -> Cohere rotation
+for i in range(1, 11):
+    # 1. Load Gemini #i
+    gem_key = os.getenv(f"GEMINI_API_KEY_{i}")
+    if gem_key and gem_key.strip():
         try:
-            # 1. AI writes the article
-            source_url = f"https://news.google.com/search?q={urllib.parse.quote(topic)}"
-            content = write_news_article(source_url, topic)
-            
-            if not content:
-                continue
-                
-            # 2. Publish to React UI and HTML (Passing empty strings instead of images)
-            update_news_json(topic, content[:150] + "...", "Trending", "")
-            generate_html_page(topic, "", content)
-            
-            success_count += 1
-            print(f"Published Text Only: {topic}")
+            client = genai.Client(api_key=gem_key.strip())
+            available_clients.append({"engine": "gemini", "client": client, "key_id": f"GEMINI_API_KEY_{i}"})
         except Exception as e:
-            print(f"Failed on {topic}: {e}")
+            print(f"Failed to load GEMINI_API_KEY_{i}: {e}")
+
+    # 2. Load Groq #i
+    groq_key = os.getenv(f"GROQ_API_KEY_{i}")
+    if groq_key and groq_key.strip():
+        try:
+            client = Groq(api_key=groq_key.strip())
+            available_clients.append({"engine": "groq", "client": client, "key_id": f"GROQ_API_KEY_{i}"})
+        except Exception as e:
+            print(f"Failed to load GROQ_API_KEY_{i}: {e}")
+
+    # 3. Load Cohere #i
+    coh_key = os.getenv(f"COHERE_API_KEY_{i}")
+    if coh_key and coh_key.strip():
+        try:
+            client = cohere.Client(coh_key.strip())
+            available_clients.append({"engine": "cohere", "client": client, "key_id": f"COHERE_API_KEY_{i}"})
+        except Exception as e:
+            print(f"Failed to load COHERE_API_KEY_{i}: {e}")
+
+if not available_clients:
+    print("❌ CRITICAL ERROR: NO API KEYS FOUND AT ALL! The bot cannot write.")
+
+# This creates an infinite wheel: Gem1 > Groq1 > Coh1 > Gem2 > Groq2 > Coh2...
+engine_cycle = itertools.cycle(available_clients)
+print(f"🚀 MEGA-POOL INITIALIZED: {len(available_clients)} AI Engines loaded in perfect sequence!")
+
+# --- 2. CORE BOT LOGIC ---
+
+def write_news_article(source_url, topic):
+    """Writes an article using the next available AI engine in the sorted pool."""
+    worker = next(engine_cycle)
+    engine_name = worker["engine"]
+    client = worker["client"]
+    key_id = worker["key_id"]
+    
+    print(f"🧠 Brain Selected: {engine_name.upper()} (Powered by {key_id})")
+    
+    # A tiny breath to keep the servers happy
+    time.sleep(2) 
+    
+    prompt = f"Write a 300-word exciting news article about {topic}. Be professional but engaging. Format in clean paragraphs, no markdown."
+    
+    try:
+        if engine_name == "gemini":
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt
+            )
+            return response.text
             
-    # Clean up the text file
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        
-    await update.message.reply_text(f"✅ Auto-Pilot Complete! Published {success_count} text articles.")
-
-async def delete_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Emergency kill-switch to delete a post."""
-    try:
-        post_number = context.args[0]
-        deleted_title = delete_news_article(post_number)
-        
-        if deleted_title:
-            await update.message.reply_text(f"🗑️ Successfully deleted: {deleted_title}")
-        else:
-            await update.message.reply_text("❌ Could not find that post number. Check your news.json.")
-    except IndexError:
-        await update.message.reply_text("Usage: /delete <number>\nExample: /delete 1 (deletes the newest post)")
-
-async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Simple ping-pong to test if the bot is alive."""
-    await update.message.reply_text("🏓 PONG! Publisher Bot is alive and well.")
-
-if __name__ == '__main__':
-    # 1. Start the Dummy Web Server in the background
-    print("🌐 Starting Dummy Web Server for Koyeb Health Check...")
-    threading.Thread(target=run_web, daemon=True).start()
-
-    # 2. Start the Telegram Bot setup
-    token = os.getenv("PUBLISHER_BOT_TOKEN")
-    
-    # We are building the app with massive timeouts and a connection pool
-    app = (
-        ApplicationBuilder()
-        .token(token)
-        .connect_timeout(60) 
-        .read_timeout(60)
-        .write_timeout(60)
-        .pool_timeout(60)
-        .build()
-    )
-    
-    # Add Handlers
-    app.add_handler(CommandHandler("ping", ping))
-    app.add_handler(CommandHandler("delete", delete_post))
-    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
-    
-    print("🚀 Attempting to connect to Telegram... (This might take a minute)")
-    
-    try:
-        app.run_polling(drop_pending_updates=True, close_loop=False)
+        elif engine_name == "groq":
+            completion = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return completion.choices[0].message.content
+            
+        elif engine_name == "cohere":
+            response = client.chat(message=prompt)
+            return response.text
+            
     except Exception as e:
-        print(f"❌ DEADLY ERROR: {e}")
+        print(f"❌ {engine_name.upper()} ({key_id}) Failed: {e}")
+        return None
+
+def update_news_json(topic, excerpt, category, img_url):
+    """Saves the article to the React database (Text Only)."""
+    safe_name = "".join(x for x in topic if x.isalnum())[:20]
+    filepath = "public/news.json"
+    
+    new_article = {
+        "id": safe_name,
+        "title": topic,
+        "excerpt": excerpt,
+        "category": category,
+        "readTime": "3 min read",
+        "date": datetime.now().strftime("%b %d, %Y"),
+        "imageUrl": img_url # Will be empty based on bot_manager
+    }
+    
+    articles = []
+    if os.path.exists(filepath):
+        with open(filepath, "r", encoding="utf-8") as f:
+            try:
+                articles = json.load(f)
+            except:
+                pass
+                
+    articles.insert(0, new_article)
+    
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(articles, f, indent=4)
+
+def generate_html_page(title, img_url, content):
+    """Generates a standalone HTML page (Text Only optimized)."""
+    safe_name = "".join(x for x in title if x.isalnum())[:20]
+    filename = f"public/{safe_name}.html"
+    
+    paragraphs = "".join([f"<p style='margin-bottom: 1.5rem; line-height: 1.8; color: #374151;'>{p.strip()}</p>" for p in content.split('\n') if p.strip()])
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{title} | Grand Line News</title>
+        <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50 text-gray-900 font-sans">
+        <nav class="bg-white shadow-sm py-4 px-6 mb-8">
+            <div class="max-w-5xl mx-auto flex items-center">
+                <a href="/" class="flex items-center gap-2 text-2xl font-black tracking-tight text-gray-900">
+                    <img src="/logo.svg" alt="Logo" class="w-8 h-8" />
+                    Grand Line News
+                </a>
+            </div>
+        </nav>
+        <main class="max-w-5xl mx-auto px-4 pb-12">
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-12">
+                <div class="p-8 md:p-12">
+                    <h1 class="text-3xl md:text-5xl font-black leading-tight mb-8">{title}</h1>
+                    <div class="text-lg md:text-xl">
+                        {paragraphs}
+                    </div>
+                </div>
+            </article>
+        </main>
+        <footer class="bg-white border-t border-gray-200 text-center py-8 text-gray-500 text-sm">
+            &copy; 2026 Grand Line News | Automated by Reigen
+        </footer>
+    </body>
+    </html>
+    """
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+def delete_news_article(post_number):
+    """Emergency kill-switch to delete a post."""
+    filepath = "public/news.json"
+    if not os.path.exists(filepath): return None
+    with open(filepath, "r", encoding="utf-8") as f:
+        try:
+            articles = json.load(f)
+        except: return None
+    try:
+        index = int(post_number) - 1
+        deleted = articles.pop(index)
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(articles, f, indent=4)
+        html_path = f"public/{deleted['id']}.html"
+        if os.path.exists(html_path): os.remove(html_path)
+        return deleted["title"]
+    except: return None
