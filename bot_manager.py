@@ -4,7 +4,6 @@ import threading
 from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, CommandHandler, filters
-# Notice get_pexels_image is GONE from this line!
 from brain import write_news_article, update_news_json, generate_html_page, delete_news_article
 from dotenv import load_dotenv
 
@@ -24,7 +23,7 @@ def run_web():
 # ----------------------------
 
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Intercepts the .txt file and Auto-Publishes up to 20 stories."""
+    """Intercepts the .txt file and Auto-Publishes the Highest and Lowest story per region."""
     document = update.message.document
     
     if not document.file_name.endswith('.txt'):
@@ -41,17 +40,42 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with open(file_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
         
-    topics = []
+    final_topics = []
+    current_country_topics = []
+    
     for line in lines:
-        if line.startswith("Topic:"):
-            # Extract just the topic name (ignoring the search count)
+        if line.startswith("--- NEW TRENDS IN"):
+            # If we just finished a country, extract its Highest (First) and Lowest (Last)
+            if current_country_topics:
+                if len(current_country_topics) >= 2:
+                    final_topics.append(current_country_topics[0])  # Highest
+                    final_topics.append(current_country_topics[-1]) # Lowest
+                else:
+                    final_topics.append(current_country_topics[0])
+            
+            # Reset the list for the new country we just hit
+            current_country_topics = [] 
+            
+        elif line.startswith("Topic:"):
             topic = line.split("Topic:")[1].split("(")[0].strip()
-            if topic not in topics:
-                topics.append(topic)
+            if topic not in current_country_topics:
+                current_country_topics.append(topic)
                 
-    # Limit to top 4 topics for testing (we will change this to 20 later!)
-    topics = topics[:4]
-    await update.message.reply_text(f"🤖 Extracted {len(topics)} topics. Writing text-only articles now...")
+    # Don't forget to process the very last country in the text file!
+    if current_country_topics:
+        if len(current_country_topics) >= 2:
+            final_topics.append(current_country_topics[0])
+            final_topics.append(current_country_topics[-1])
+        else:
+            final_topics.append(current_country_topics[0])
+
+    # Remove any duplicate topics across different countries to save API calls
+    topics = []
+    for t in final_topics:
+        if t not in topics:
+            topics.append(t)
+                
+    await update.message.reply_text(f"🤖 Extracted {len(topics)} topics (Highest & Lowest from each region). Passing to the Mega-Pool now...")
 
     success_count = 0
     for topic in topics:
@@ -115,14 +139,13 @@ if __name__ == '__main__':
     )
     
     # Add Handlers
-    app.add_handler(CommandHandler("ping", ping)) # <--- NEW PING COMMAND
+    app.add_handler(CommandHandler("ping", ping))
     app.add_handler(CommandHandler("delete", delete_post))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     
     print("🚀 Attempting to connect to Telegram... (This might take a minute)")
     
     try:
-        # 'drop_pending_updates' cleans out the 'stuck' messages from the last crash
         app.run_polling(drop_pending_updates=True, close_loop=False)
     except Exception as e:
         print(f"❌ DEADLY ERROR: {e}")
