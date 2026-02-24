@@ -5,11 +5,28 @@ const NewsFeed = () => {
   const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
-    // This tells the UI to look for the file our bot creates
-    fetch("/news.json")
-      .then(res => res.json())
-      .then(data => setArticles(data))
-      .catch(err => console.error("Waiting for bot data...", err));
+    const fetchLiveNews = async () => {
+      try {
+        // Connected to your live Koyeb API!
+        const response = await fetch('https://smart-corine-gojosggh-59868182.koyeb.app/api/news');
+        
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        
+        const liveData = await response.json();
+        setArticles(liveData);
+      } catch (error) {
+        console.error('Error fetching live news from Koyeb:', error);
+      }
+    };
+
+    // Fetch the news immediately when the page loads
+    fetchLiveNews();
+    
+    // Auto-refresh the news every 5 minutes without reloading the page!
+    const intervalId = setInterval(fetchLiveNews, 300000); 
+    return () => clearInterval(intervalId);
   }, []);
 
   if (articles.length === 0) {
